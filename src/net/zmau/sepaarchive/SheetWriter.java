@@ -28,7 +28,8 @@ public class SheetWriter {
     public SheetWriter() throws IOException, GeneralSecurityException {
         sheetsService = getSheetsService();
     }
-    private static final String CREDENTIALS_FILE_PATH = "C:\\dev\\SepaArhivar\\credentials.json";
+    //private static final String CREDENTIALS_FILE_PATH = ":\\dev\\SepaArhivar\\credentials.json";
+    private static final String CREDENTIALS_FILE_PATH = "F:\\SepaArchiver\\credentials.json";
 
     public Sheets getSheetsService() throws IOException, GeneralSecurityException {
         Credential credential = authorize();
