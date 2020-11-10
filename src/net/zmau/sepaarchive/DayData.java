@@ -1,16 +1,15 @@
 package net.zmau.sepaarchive;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.List;
 
 public class DayData {
-    private Calendar date;
+    private LocalDateTime date;
     private List<HourDataItem> hourData;
 
     public DayData(){
-        date = new GregorianCalendar();
+        date = LocalDateTime.now();
         hourData = new ArrayList<HourDataItem>();
     }
     public void AddHourData(HourDataItem hourDataItem){

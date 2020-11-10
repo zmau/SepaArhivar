@@ -28,8 +28,8 @@ public class SheetWriter {
     public SheetWriter() throws IOException, GeneralSecurityException {
         sheetsService = getSheetsService();
     }
-    //private static final String CREDENTIALS_FILE_PATH = ":\\dev\\SepaArhivar\\credentials.json";
-    private static final String CREDENTIALS_FILE_PATH = "F:\\SepaArchiver\\credentials.json";
+    private static final String CREDENTIALS_FILE_PATH = "C:\\dev\\SepaArhivar\\credentials.json";
+    //private static final String CREDENTIALS_FILE_PATH = "F:\\SepaArchiver\\credentials.json";
 
     public Sheets getSheetsService() throws IOException, GeneralSecurityException {
         Credential credential = authorize();
@@ -56,9 +56,9 @@ public class SheetWriter {
     }
 
     public void WriteItem(DataItem item) throws IOException {
-        ValueRange body = new ValueRange().setValues(Arrays.asList(
-                Arrays.asList(/*item.getTime()*/"6.11", item.getSO2(), item.getPM10(), item.getNO2(), item.getCO(), item.getPM2comma5())
-        ));
+        List<Object> itemAsObjets = Arrays.asList(item.getDate(), item.getHour()
+                , item.getSO2AsString(), item.getPM10AsString(), item.getNO2AsString(), item.getCOAsString(), item.getPM2comma5AsString());
+        ValueRange body = new ValueRange().setValues(Arrays.asList(itemAsObjets));
 
         AppendValuesResponse appendResult = sheetsService.spreadsheets().values()
                 .append(SPREADSHEET_ID, "A1", body)

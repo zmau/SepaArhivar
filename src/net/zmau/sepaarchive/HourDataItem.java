@@ -1,15 +1,15 @@
 package net.zmau.sepaarchive;
 
-import java.util.Calendar;
-import java.util.GregorianCalendar;
+import java.time.LocalDateTime;
 
 public class HourDataItem extends DataItem {
+
     public void setTime(String Time){
-        time = new GregorianCalendar();
-        time.set(Calendar.DATE, Integer.parseInt(Time.substring(0, 1)));
-        time.set(Calendar.MONTH, Integer.parseInt(Time.substring(3, 4)));
-        time.set(Calendar.YEAR, Calendar.getInstance().getTime().getYear());
-        time.set(Calendar.HOUR, Integer.parseInt(Time.substring(7, 8)));
+        time = LocalDateTime.now()
+            .withMonth (Integer.parseInt(Time.substring(3, 5)))
+            .withDayOfMonth (Integer.parseInt(Time.substring(0, 2)))
+            .withHour(Integer.parseInt(Time.substring(7, 9)))
+            .withMinute(0).withSecond(0);
     }
     public void setSO2(String text){
         try {
@@ -20,7 +20,12 @@ public class HourDataItem extends DataItem {
         }
     };
     public void setPM10(String text){
-        PM10 = Float.parseFloat(text);
+        try {
+            PM10 = Float.parseFloat(text);
+        }
+        catch (NumberFormatException e){
+            PM10 = null;
+        }
     }
     public void setNO2(String text){
         try {
