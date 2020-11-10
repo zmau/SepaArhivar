@@ -29,12 +29,17 @@ public class SepaArchiver {
         List<HourDataItem> result = new ArrayList<HourDataItem>();
         String[] rows = cellularData.split("\n");
         for(int i = 6; i < rows.length; i++){
-            result.add(parseLine(rows[i]));
+            HourDataItem observation =parseLine(rows[i]);
+            if(observation != null)
+                result.add(observation);
         }
         return result;
     }
     private HourDataItem parseLine(String line){
         String[] cell = line.split(" ");
+        if (cell.length < 7)
+            return null;
+
         HourDataItem result = new HourDataItem();
         result.setTime(cell[0] + " " + cell[1]);
         if(cell.length > 2)
