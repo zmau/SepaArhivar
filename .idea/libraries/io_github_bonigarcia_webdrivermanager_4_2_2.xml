@@ -1,0 +1,21 @@
+<component name="libraryTable">
+  <library name="io.github.bonigarcia:webdrivermanager:4.2.2" type="repository">
+    <properties maven-id="io.github.bonigarcia:webdrivermanager:4.2.2" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/webdrivermanager-4.2.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/slf4j-api-1.7.30.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons-io-2.8.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/gson-2.8.6.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons-lang3-3.11.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/httpclient5-5.0.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/httpcore5-5.0.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/httpcore5-h2-5.0.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons-codec-1.13.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jarchivelib-1.1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/commons-compress-1.20.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/jsoup-1.13.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
