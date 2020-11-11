@@ -4,38 +4,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SepaArchiver {
+
     public static void main(String[] args) {
         SepaArchiver archiver = new SepaArchiver();
         archiver.archiveData();
     }
 
     public SepaArchiver(){
-
     }
+
     public void archiveData(){
         try {
             SepaReader reader = new SepaReader();
             List<HourDataItem> hourData = parsedData(reader.readData());
+
             SheetWriter writer = new SheetWriter();
-            for(HourDataItem dataItem : hourData) {
-                writer.WriteItem(dataItem);
-            }
+            writer.writeTheDay(hourData);
         }
         catch (Exception e){
             e.printStackTrace();
         }
     }
     private List<HourDataItem> parsedData(String cellularData){
-        List<HourDataItem> result = new ArrayList<HourDataItem>();
+        List<HourDataItem> result = new ArrayList<>();
         String[] rows = cellularData.split("\n");
         for(int i = 6; i < rows.length; i++){
-            HourDataItem observation =parseLine(rows[i]);
+            HourDataItem observation = parsedLine(rows[i]);
             if(observation != null)
                 result.add(observation);
         }
         return result;
     }
-    private HourDataItem parseLine(String line){
+    private HourDataItem parsedLine(String line){
         String[] cell = line.split(" ");
         if (cell.length < 7)
             return null;
