@@ -15,7 +15,6 @@ import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.*;
 import java.security.GeneralSecurityException;
-import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -41,7 +40,7 @@ public class SheetWriter {
         sheetsService =  new Sheets.Builder(GoogleNetHttpTransport.newTrustedTransport(), JacksonFactory.getDefaultInstance(), credential   )
                 .setApplicationName(APPLICATION_NAME)
                 .build();
-        spreadsheetToUseID = TEST_SPREADSHEET_ID;
+        spreadsheetToUseID = /*TEST_*/SPREADSHEET_ID;
     }
 
     public static Credential authorize() throws IOException, GeneralSecurityException {
@@ -74,7 +73,15 @@ public class SheetWriter {
         List<List<Object>> observationListAsObjects = new ArrayList<List<Object>>();
         for (HourDataItem observation : dailyObservationList){
             if(observation.isAfter(lastObservationTime)) {
-                List<Object> observationAsObjects = Arrays.asList(observation.getSO2AsString(), observation.getPM10AsString(), observation.getNO2AsString(), observation.getCOAsString(), observation.getPM2comma5AsString());
+                List<Object> observationAsObjects = Arrays.asList(
+                        observation.getDate(),
+                        observation.getHour(),
+                        observation.getSO2AsString(),
+                        observation.getPM10AsString(),
+                        observation.getNO2AsString(),
+                        observation.getCOAsString(),
+                        observation.getPM2comma5AsString()
+                );
                 observationListAsObjects.add(observationAsObjects);
             }
         }
