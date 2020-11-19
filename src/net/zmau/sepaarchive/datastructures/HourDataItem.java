@@ -3,11 +3,22 @@ package net.zmau.sepaarchive.datastructures;
 import net.zmau.sepaarchive.datastructures.DataItem;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class HourDataItem extends DataItem {
 
     public boolean isAfter(LocalDateTime moment){
         return this.time.isAfter(moment);
+    }
+
+    public void setValue(List<String> componentsToFollow, int index, String value){
+        switch (componentsToFollow.get(index)){
+            case "SO2" : setSO2(value); break;
+            case "PM10" : setPM10(value); break;
+            case "NO2" : setNO2(value); break;
+            case "CO" : setCO(value); break;
+            case "PM2.5" : setPM2comma5(value); break;
+        }
     }
     public void setTime(String Time){
         time = LocalDateTime.now()

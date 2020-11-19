@@ -28,8 +28,6 @@ public class MonthArchiver {
     public MonthArchiver() throws SQLException{
         stationList = new ArrayList<Integer>();
         componentList = new ArrayList<>();
-        String connectionUrl = "jdbc:sqlserver://localhost;integratedSecurity=true;databaseName=sepa";
-        con = DriverManager.getConnection(connectionUrl);
     }
 
     public void archiveData() throws SQLException{
@@ -38,9 +36,8 @@ public class MonthArchiver {
     }
     // station 11-20 2020-11-12 puklo
     private void readStationsAndComponents() throws SQLException{
-            Statement stStations = con.createStatement();
             String SQL = "SELECT sepaId FROM station where following = 1 and sepaId between 70 and 79 order by sepaid";
-            ResultSet rs = stStations.executeQuery(SQL);
+            ResultSet rs = DBUtil.execQuery(SQL);
 
             StringBuilder stations = new StringBuilder();
             while (rs.next()) {
@@ -49,9 +46,8 @@ public class MonthArchiver {
             }
             stationCSV = stations.substring(1);
 
-            Statement stComponents = con.createStatement();
             SQL = "SELECT sepaId FROM component order by sepaid";
-            rs = stComponents.executeQuery(SQL);
+            rs = DBUtil.execQuery(SQL);
 
             StringBuilder components = new StringBuilder();
             while (rs.next()) {
@@ -59,8 +55,7 @@ public class MonthArchiver {
                 componentList.add(rs.getInt("sepaId"));
             }
             componentCSV = components.substring(1);
-
-        }
+    }
 
     private void readMonthlyData(){
         StringBuilder batchInsert = new StringBuilder( "insert into observation values ");
@@ -97,8 +92,7 @@ public class MonthArchiver {
                                 if(counter == 1000){
                                     String insertScript = batchInsert.substring(0, batchInsert.length()-1);
                                     System.out.println(insertScript);
-                                    Statement insert = con.createStatement();
-                                    insert.executeUpdate(insertScript);
+                                    DBUtil.execSQL(insertScript);
                                     counter = 0;
                                     batchInsert = new StringBuilder( "insert into observation values ");
                                 }
@@ -111,8 +105,7 @@ public class MonthArchiver {
             //System.out.println(counter + "  observations");
             String insertScript = batchInsert.substring(0, batchInsert.length()-1);
             System.out.println(insertScript);
-            Statement insert = con.createStatement();
-            insert.executeUpdate(insertScript);
+            DBUtil.execSQL(insertScript);
         }
         catch (Exception e){
             System.out.println(e.getMessage());
