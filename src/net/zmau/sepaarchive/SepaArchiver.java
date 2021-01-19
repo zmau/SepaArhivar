@@ -3,31 +3,53 @@ package net.zmau.sepaarchive;
 import net.zmau.sepaarchive.datastructures.HourDataItem;
 import net.zmau.sepaarchive.datastructures.Observation;
 
+import java.net.UnknownHostException;
 import java.sql.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class SepaArchiver {
 
-    public static final String SITE_ADDRESS = "http://www.amskv.sepa.gov.rs/android/pregledpodataka.php?stanica=%d&fbclid=IwAR2ezkHiUXsKCwPJAtzWZotzEPBsPjzh5HUw6HUuM5UkreVMbYUOx-eFEeY" ;
+    public static final String DAILY_DATA_URL = "http://www.amskv.sepa.gov.rs/android/pregledpodataka.php?stanica=%d" ;
+    public static final String MONTHLY_DATA_URL = "http://www.amskv.sepa.gov.rs/pregledpodataka.php?stanica=%d" ;
     private static final String CONNECTION_STRING = "jdbc:sqlserver://localhost;integratedSecurity=true;databaseName=";
     private static final String PRODUCTION_DATABASE_NAME = "sepa";
     private static final String TEST_DATABASE_NAME = "sepa_test";
     public static final String PRODUCTION_SPREADSHEET_ID = "1d-OPrhCoqKUSCu9wXbOIfWmcw-sFh1SWru26sJFQpZw";
     public static final String TEST_SPREADSHEET_ID = "13HUUuESx75JWRNeUU5FC_r3WkYeOiUviP92i7wqPtZQ";
 
-    private static boolean inTestMode = false;
+    public enum TimelyMode {
+        DAILY,
+        MONTHLY
+    }
+
+    private static boolean inTestMode = true;
+    public static TimelyMode timelyMode;
+    private Logger logger;
+
 
     public static void main(String[] args) {
-        SepaArchiver archiver = new SepaArchiver();
-
-        archiver.archiveDailyData();
+        if(args.length > 0 && args[0].equals("monthly2")) {
+            SepaArchiver archiver = new SepaArchiver(TimelyMode.MONTHLY);
+            System.out.println("starting archiver [monthly]" + (inTestMode ? " in test mode" : ""));
+            archiver.archiveMonthlyData2();
+        }
+        else {
+            SepaArchiver archiver = new SepaArchiver(TimelyMode.DAILY);
+            System.out.println("starting archiver [daily]" + (inTestMode ? " in test mode" : ""));
+            archiver.archiveDailyData();
+        }
         //archiver.archiveMonthlyData();
     }
 
-    public SepaArchiver(){
+    public SepaArchiver(TimelyMode mode){
+        logger = LoggerFactory.getLogger(SepaArchiver.class);
+        this.timelyMode = mode;
     }
 
     public static String getConnectionString(){
@@ -50,25 +72,44 @@ public class SepaArchiver {
             e.printStackTrace();
         }
     }
+
     public void archiveDailyData(){
         SepaReader reader = new SepaReader();
         try {
             DBUtil.loadPoisonMap();
             ResultSet stationSet = DBUtil.execQuery("select sepaId, name from station where following = 1");
-            SheetWriter sheetWriter = new SheetWriter(inTestMode);
+            System.out.println("Reading data from web site, in " + (inTestMode ? "TEST MODE" : "PRODUCTION MODE"));
+            SheetWriter sheetWriter = null;
+            boolean canWriteToSheet = true;
+            try {
+                sheetWriter = new SheetWriter(inTestMode);
+            }
+            catch (UnknownHostException e){
+                canWriteToSheet = false;
+                System.out.println("Can not access oauth2.googleapis.com. Won't write to google sheet.");
+            }
+            catch (Exception e){
+                canWriteToSheet = false;
+                System.out.println("Can not write to google sheet : " + e.getMessage());
+            }
             while (stationSet.next()) {
                 int stationToProcessId = stationSet.getInt("sepaId");
                 try {
-                    // if (stationToProcessId == 13) {
+                    System.out.println(LocalDateTime.now().toLocalTime().toString().substring(0, 8)  + "  reading data for station " + stationSet.getString("name"));
                     List<HourDataItem> hourDataForStation = reader.readDailyData(stationToProcessId);
+                    System.out.println("    " + LocalDateTime.now().toLocalTime().toString().substring(0, 8)  + "  writing to database");
                     writeDayToDatabase(hourDataForStation, stationToProcessId);
-                    sheetWriter.writeTheDay(hourDataForStation, stationSet.getString("name"));
-                    //}
-                }catch(Exception e){
-                        System.out.println(String.format("Error processing station %d : %s - %s", stationToProcessId, e.getClass().toString(), e.getMessage()));
-                        e.printStackTrace();
+                    if (canWriteToSheet) {
+                        System.out.println("    " + LocalDateTime.now().toLocalTime().toString().substring(0, 8) + "  writing to spreadsheet");
+                        sheetWriter.writeTheDay(hourDataForStation, stationSet.getString("name"));
                     }
+                    System.out.println("    finished station");
                 }
+                catch(Exception e){
+                   System.out.println(String.format("Error processing station %d : %s - %s", stationToProcessId, e.getClass().toString(), e.getMessage()));
+                   e.printStackTrace();
+                }
+            }
         }
         catch (Exception e){
             e.printStackTrace();
@@ -77,36 +118,23 @@ public class SepaArchiver {
             reader.quit();
         }
     }
-    private List<HourDataItem> parsedData(String cellularData){
-        List<HourDataItem> result = new ArrayList<>();
-        String[] rows = cellularData.split("\n");
-        for(int i = 6; i < rows.length; i++){
-            HourDataItem observation = parsedLine(rows[i]);
-            if(observation != null)
-                result.add(observation);
+
+    public void archiveMonthlyData2(){
+        try {
+            int stationToProcessId = 70;
+            SepaReader reader = new SepaReader();
+//            SheetWriter sheetWriter = new SheetWriter(inTestMode);
+            List<HourDataItem> hourDataForStation = reader.readMonthlyData(stationToProcessId);
+            System.out.println(hourDataForStation.size());
+            writeDayToDatabase(hourDataForStation, stationToProcessId);
+  //          sheetWriter.writeTheDay(hourDataForStation, "Šabac mobilna");
+
         }
-        return result;
+        catch (Exception e){
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+        }
     }
-    private HourDataItem parsedLine(String line){
-        String[] cell = line.split(" ");
-        if (cell.length < 7)
-            return null;
-
-        HourDataItem result = new HourDataItem();
-        result.setTime(cell[0] + " " + cell[1]);
-        if(cell.length > 2)
-            result.setSO2(cell[2]);
-        if(cell.length > 3)
-            result.setPM10(cell[3]);
-        if(cell.length > 4)
-            result.setNO2(cell[4]);
-        if(cell.length > 5)
-            result.setCO(cell[5]);
-        if(cell.length > 6)
-            result.setPM2comma5(cell[6]);
-        return result;
-    }
-
     private void writeDayToDatabase(List<HourDataItem> dailyData, int stationId){
         for(HourDataItem hourDataItem : dailyData){
             List<Observation> hourlyObservations = new ArrayList<>();
@@ -156,8 +184,10 @@ public class SepaArchiver {
                 DBUtil.insertObservations(hourlyObservations);
             }
             catch (SQLException e){
-                System.out.println(e.getMessage());
-                e.printStackTrace();
+                if(!e.getMessage().startsWith("Cannot insert duplicate key row")) {
+                    System.out.println(e.getMessage());
+                    e.printStackTrace();
+                }
             }
         }
     }

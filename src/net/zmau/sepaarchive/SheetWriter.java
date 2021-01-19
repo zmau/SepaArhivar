@@ -59,6 +59,10 @@ public class SheetWriter {
 
     public LocalDateTime getLastObservationTime(String sheetName) throws IOException {
         List<List<Object>> observationTimeList = sheetsService.spreadsheets().values().get(spreadsheetToUseID, String.format("%s!A1:C", sheetName)).execute().getValues();
+        if(observationTimeList == null){
+            System.out.println(String.format("Warning : Sheet %s deos not have a header! Add it.", sheetName));
+            return LocalDateTime.of(1970, 1, 1, 1, 0);
+        }
         if(observationTimeList.isEmpty())
             return LocalDateTime.of(1970, 1, 1, 1, 0);
         List<Object> lastObservation = observationTimeList.get(observationTimeList.size()-1);

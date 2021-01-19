@@ -7,11 +7,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
-import java.sql.Statement;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.sql.*;
 import java.time.format.DateTimeFormatter;
@@ -20,45 +16,43 @@ import java.util.List;
 
 public class MonthArchiver {
     private static String MONTHLY_URL_TEMPLATE = "http://www.amskv.sepa.gov.rs/konektori/pregled_tabela_uporedni.php?stanice[]=%s&komponente[]=%s&periodi[]=dana30&agregacija[]=1";
-    private Connection con;
 
     private String stationCSV, componentCSV;
     private List<Integer> stationList, componentList;
 
     public MonthArchiver() throws SQLException{
         stationList = new ArrayList<Integer>();
-        componentList = new ArrayList<>();
+        componentList = new ArrayList<Integer>();
     }
 
     public void archiveData() throws SQLException{
         readStationsAndComponents();
-        readMonthlyData();
+        readAndArchiveMothlyData();
     }
     // station 11-20 2020-11-12 puklo
     private void readStationsAndComponents() throws SQLException{
-            String SQL = "SELECT sepaId FROM station where following = 1 and sepaId between 70 and 79 order by sepaid";
-            ResultSet rs = DBUtil.execQuery(SQL);
+        String SQL = "SELECT sepaId FROM station where following = 1 and sepaId = 13 order by sepaid";
+        ResultSet rs = DBUtil.execQuery(SQL);
 
-            StringBuilder stations = new StringBuilder();
-            while (rs.next()) {
-                stations.append("," + rs.getString("sepaId"));
-                stationList.add(rs.getInt("sepaId"));
-            }
-            stationCSV = stations.substring(1);
+        StringBuilder stations = new StringBuilder();
+        while (rs.next()) {
+            stations.append("," + rs.getString("sepaId"));
+            stationList.add(rs.getInt("sepaId"));
+        }
+        stationCSV = stations.substring(1);
 
-            SQL = "SELECT sepaId FROM component order by sepaid";
-            rs = DBUtil.execQuery(SQL);
+        SQL = "SELECT sepaId FROM component order by sepaid";
+        rs = DBUtil.execQuery(SQL);
 
-            StringBuilder components = new StringBuilder();
-            while (rs.next()) {
-                components.append("," + rs.getString("sepaId"));
-                componentList.add(rs.getInt("sepaId"));
-            }
-            componentCSV = components.substring(1);
+        StringBuilder components = new StringBuilder();
+        while (rs.next()) {
+            components.append("," + rs.getString("sepaId"));
+            componentList.add(rs.getInt("sepaId"));
+        }
+        componentCSV = components.substring(1);
     }
 
-    private void readMonthlyData(){
-        StringBuilder batchInsert = new StringBuilder( "insert into observation values ");
+    private void readAndArchiveMothlyData(){
         WebDriverManager.chromedriver().setup();
         WebDriver driver = new ChromeDriver();
         try {
@@ -68,6 +62,7 @@ public class MonthArchiver {
             WebElement table = driver.findElement(By.id("pregledtabela"));
 
             List<WebElement> rows = table.findElements(By.tagName("tr"));
+            StringBuilder batchInsert = new StringBuilder( "insert into observation values ");
             int counter = 0;
             int currentProcessedDate = -1;
             for (int i = 0; i < rows.size(); i++) {
@@ -78,14 +73,14 @@ public class MonthArchiver {
                         currentProcessedDate = time.getDayOfMonth();
                         System.out.println(LocalDateTime.now().toLocalTime().toString().substring(0, 8) + " : processing " + time.toLocalDate());
                     }
-                    for (int si = 0; si < stationList.size(); si++) {
-                        for (int ci = 0; ci < componentList.size(); ci++) {
-                            String observationText = cells.get(ci*stationList.size() + si + 1).getText();
+                    for (int stationIndex = 0; stationIndex < stationList.size(); stationIndex++) {
+                        for (int componentIndex = 0; componentIndex < componentList.size(); componentIndex++) {
+                            String observationText = cells.get(componentIndex*stationList.size() + stationIndex + 1).getText();
                             if(!observationText.isEmpty()) {
                                 Observation observation = new Observation();
                                 observation.time = time;
-                                observation.componentId = componentList.get(ci);
-                                observation.stationId = stationList.get(si);
+                                observation.componentId = componentList.get(componentIndex);
+                                observation.stationId = stationList.get(stationIndex);
                                 observation.value = Float.parseFloat(observationText);
                                 batchInsert.append(observation.insertFieldsCSV() + ",");
                                 counter++;
