@@ -75,7 +75,7 @@ public class SheetWriter {
         }
     }
 
-    public void writeTheDay(List<HourDataItem> dailyObservationList, String stationName) throws IOException {
+    public void writeTheData(List<HourDataItem> dailyObservationList, String stationName) throws IOException {
         LocalDateTime lastObservationTime = getLastObservationTime(stationName);
 
         List<List<Object>> observationListAsObjects = new ArrayList<List<Object>>();

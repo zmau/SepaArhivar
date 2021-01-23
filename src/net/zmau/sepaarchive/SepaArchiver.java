@@ -7,6 +7,8 @@ import java.net.UnknownHostException;
 import java.sql.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,6 +24,7 @@ public class SepaArchiver {
     private static final String TEST_DATABASE_NAME = "sepa_test";
     public static final String PRODUCTION_SPREADSHEET_ID = "1d-OPrhCoqKUSCu9wXbOIfWmcw-sFh1SWru26sJFQpZw";
     public static final String TEST_SPREADSHEET_ID = "13HUUuESx75JWRNeUU5FC_r3WkYeOiUviP92i7wqPtZQ";
+    private static final int[] STATTIONS_TO_PROCESS = {13/*hitna pomoć*/, 16/*obrenovac* /, 22/*valjevo* /, 70/*mobilna*/};
 
     public enum TimelyMode {
         DAILY,
@@ -58,21 +61,6 @@ public class SepaArchiver {
     public static String getSpreadsheetId(){
         return inTestMode ? TEST_SPREADSHEET_ID : PRODUCTION_SPREADSHEET_ID;
     }
-    public void archiveMonthlyData(){
-        try {
-            LocalDateTime time0 = LocalDateTime.now();
-            System.out.println("starting at " + time0.toLocalTime());
-            MonthArchiver archiver = new MonthArchiver();
-            archiver.archiveData();
-            LocalDateTime time1 = LocalDateTime.now();
-            Duration duration = Duration.between(time0, time1);
-            System.out.println("finished at " + time1.toLocalTime() + "; " + duration.getSeconds() + " seconds");
-        }
-        catch (SQLException e){
-            e.printStackTrace();
-        }
-    }
-
     public void archiveDailyData(){
         SepaReader reader = new SepaReader();
         try {
@@ -98,10 +86,10 @@ public class SepaArchiver {
                     System.out.println(LocalDateTime.now().toLocalTime().toString().substring(0, 8)  + "  reading data for station " + stationSet.getString("name"));
                     List<HourDataItem> hourDataForStation = reader.readDailyData(stationToProcessId);
                     System.out.println("    " + LocalDateTime.now().toLocalTime().toString().substring(0, 8)  + "  writing to database");
-                    writeDayToDatabase(hourDataForStation, stationToProcessId);
+                    writeToDatabase(hourDataForStation, stationToProcessId);
                     if (canWriteToSheet) {
                         System.out.println("    " + LocalDateTime.now().toLocalTime().toString().substring(0, 8) + "  writing to spreadsheet");
-                        sheetWriter.writeTheDay(hourDataForStation, stationSet.getString("name"));
+                        sheetWriter.writeTheData(hourDataForStation, stationSet.getString("name"));
                     }
                     System.out.println("    finished station");
                 }
@@ -121,13 +109,16 @@ public class SepaArchiver {
 
     public void archiveMonthlyData2(){
         try {
-            int stationToProcessId = 70;
             SepaReader reader = new SepaReader();
-//            SheetWriter sheetWriter = new SheetWriter(inTestMode);
-            List<HourDataItem> hourDataForStation = reader.readMonthlyData(stationToProcessId);
-            System.out.println(hourDataForStation.size());
-            writeDayToDatabase(hourDataForStation, stationToProcessId);
-  //          sheetWriter.writeTheDay(hourDataForStation, "Šabac mobilna");
+            for (int stationToProcessId : STATTIONS_TO_PROCESS) {
+                LocalDateTime lastObservationTime = getLastObservationTime(stationToProcessId);
+                reader.setLastProcessedTimestamp(lastObservationTime);
+                // SheetWriter sheetWriter = new SheetWriter(inTestMode);
+                List<HourDataItem> hourDataForStation = reader.readMonthlyData(stationToProcessId);
+                System.out.println(String.format("station %d : %d new observations", stationToProcessId, hourDataForStation.size()));
+                writeToDatabase(hourDataForStation, stationToProcessId);
+                //sheetWriter.writeTheData(hourDataForStation, "Šabac mobilna");
+            }
 
         }
         catch (Exception e){
@@ -135,7 +126,7 @@ public class SepaArchiver {
             e.printStackTrace();
         }
     }
-    private void writeDayToDatabase(List<HourDataItem> dailyData, int stationId){
+    private void writeToDatabase(List<HourDataItem> dailyData, int stationId){
         for(HourDataItem hourDataItem : dailyData){
             List<Observation> hourlyObservations = new ArrayList<>();
             if(hourDataItem.getSO2() != null) {
@@ -191,4 +182,32 @@ public class SepaArchiver {
             }
         }
     }
+
+    private LocalDateTime getLastObservationTime(int stationID) throws  SQLException{
+        ResultSet resultSet = DBUtil.execQuery("select max(time) lastTime from observation where stationID = " + stationID);
+        if(resultSet.next()) {
+            Timestamp lastTime =resultSet.getTimestamp("lastTime");
+            if(lastTime != null)
+                return lastTime.toLocalDateTime();
+            else return LocalDateTime.of(2000, 1, 1, 1, 1);
+        }
+        else return LocalDateTime.of(2000, 1, 1, 1, 1);
+    }
+
+    public void archiveMonthlyData(){
+        try {
+            LocalDateTime time0 = LocalDateTime.now();
+            System.out.println("starting at " + time0.toLocalTime());
+            MonthArchiver archiver = new MonthArchiver();
+            archiver.archiveData();
+            LocalDateTime time1 = LocalDateTime.now();
+            Duration duration = Duration.between(time0, time1);
+            System.out.println("finished at " + time1.toLocalTime() + "; " + duration.getSeconds() + " seconds");
+        }
+        catch (SQLException e){
+            e.printStackTrace();
+        }
+    }
+
+
 }
